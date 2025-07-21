@@ -63,13 +63,34 @@ def convert(input_path: Path, output_path: Path, overwrite: bool = False) -> Pat
     return output_path
 
 
+def gather_inputs(paths: list[str]) -> list[Path]:
+    """Expand directories and find npy files if ``paths`` is empty."""
+    if not paths:
+        paths = [str(p) for p in Path.cwd().glob("*.npy")]
+
+    inputs: list[Path] = []
+    for p in paths:
+        path = Path(p)
+        if path.is_dir():
+            inputs.extend(sorted(path.glob("*.npy")))
+        else:
+            inputs.append(path)
+    return inputs
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Convert joint npy files to SMPL pose files")
+        description="Convert joint npy files to SMPL pose files",
+        epilog=(
+            "If no input files are given, all *.npy files in the current "
+            "directory are processed. Directories can also be passed and will "
+            "be searched for *.npy files."
+        ),
+    )
     parser.add_argument(
         "inputs",
-        nargs="+",
-        help="Input joint npy files. Shell globs are supported by most shells",
+        nargs="*",
+        help="Input joint npy files or directories",
     )
     parser.add_argument(
         "--output-dir",
@@ -86,10 +107,9 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    inputs = [Path(p) for p in args.inputs]
+    inputs = gather_inputs(args.inputs)
     output_dir = Path(args.output_dir) if args.output_dir else None
 
-    output_paths = []
     for i, inp in enumerate(inputs):
         if output_dir:
             out_path = output_dir / f"{inp.stem}_pose.npy"
@@ -98,7 +118,6 @@ def main() -> None:
         else:
             out_path = inp.with_name(f"{inp.stem}_pose.npy")
         out = convert(inp, out_path, overwrite=args.force)
-        output_paths.append(out)
         print(f"SMPL pose saved to {out}")
 
 
