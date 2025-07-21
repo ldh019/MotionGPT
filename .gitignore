@@ -1,0 +1,7 @@
+.idea
+__pycache__
+deps
+results
+cache
+converted_bvh
+checkpoints

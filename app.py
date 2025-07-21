@@ -7,7 +7,7 @@ import cv2
 import os
 import numpy as np
 import pytorch_lightning as pl
-import moviepy.editor as mp
+import moviepy as mp
 from pathlib import Path
 from mGPT.data.build_data import build_data
 from mGPT.models.build_model import build_model
@@ -513,14 +513,14 @@ with gr.Blocks(css=customCSS) as demo:
                     container=False)
 
             with gr.Row():
-                aud = gr.Audio(source="microphone",
-                               label="Speak input",
-                               type='filepath')
+                # aud = gr.Audio(source="microphone",
+                #                label="Speak input",
+                #                type='filepath')
                 btn = gr.UploadButton("📁 Upload motion",
                                       elem_id="upload",
                                       file_types=["file"])
                 # regen = gr.Button("🔄 Regenerate", elem_id="regen")
-                clear = gr.ClearButton([txt, chatbot, aud], value='🗑️ Clear')
+                clear = gr.ClearButton([txt, chatbot], value='🗑️ Clear')
 
             with gr.Row():
                 gr.Markdown('''
@@ -557,11 +557,11 @@ with gr.Blocks(css=customCSS) as demo:
     file_msg = btn.upload(add_file, [chatbot, btn, txt, motion_uploaded],
                           [chatbot, txt, motion_uploaded],
                           queue=False)
-    aud_msg = aud.stop_recording(
-        add_audio, [chatbot, aud, data_stored, language],
-        [chatbot, data_stored],
-        queue=False).then(bot, [chatbot, motion_uploaded, data_stored, method],
-                          [chatbot, motion_uploaded, data_stored])
+    # aud_msg = aud.stop_recording(
+    #     add_audio, [chatbot, aud, data_stored, language],
+    #     [chatbot, data_stored],
+    #     queue=False).then(bot, [chatbot, motion_uploaded, data_stored, method],
+    #                       [chatbot, motion_uploaded, data_stored])
     # regen_msg = regen.click(bot,
     #                         [chatbot, motion_uploaded, data_stored, method],
     #                         [chatbot, motion_uploaded, data_stored],
