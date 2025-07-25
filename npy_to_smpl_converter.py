@@ -1,125 +1,88 @@
 #!/usr/bin/env python3
-"""Convert joint ``.npy`` files to SMPL pose ``.npy`` files.
+"""Convert motion feature ``.npy`` files to SMPL pose files.
 
-The script is a tiny wrapper around the :class:`HybrIKJointsToRotmat`
-class found in :mod:`mGPT.render.pyrender.hybrik_loc2rot`.  It reads one
-or more joint files, infers rotation matrices and writes them back next
-to the inputs.  Each output file receives a ``_pose.npy`` suffix unless
-an explicit output location is provided.
+The script reads an ``.npy`` file containing motion features (as used in the
+HumanML3D dataset) and outputs the corresponding SMPL pose matrices.
 
-Examples
---------
-Convert a single file::
-
-    python npy_to_smpl_converter.py path/to/joints.npy
-
-Or convert multiple files at once::
-
-    python npy_to_smpl_converter.py poses/seq_*.npy --output-dir smpl_poses
+It can be used as a module or run directly as a script.
 """
+
+from __future__ import annotations
+
 import argparse
+import os
 from pathlib import Path
+
 import numpy as np
 
+import sys
+import torch
 from mGPT.render.pyrender.hybrik_loc2rot import HybrIKJointsToRotmat
+from mGPT.config import parse_args
+from mGPT.data.build_data import build_data
 
 
-def convert(input_path: Path, output_path: Path, overwrite: bool = False) -> Path:
-    """Convert joint positions stored in ``input_path`` to SMPL pose matrices.
+def _load_datamodule():
+    """Load :class:`HumanML3DDataModule` with default configs."""
+    saved = sys.argv
+    sys.argv = [sys.argv[0]]  # use defaults
+    cfg = parse_args(phase="webui")
+    sys.argv = saved
+    return build_data(cfg, phase="test")
 
-    Parameters
-    ----------
-    input_path: :class:`~pathlib.Path`
-        Path to the ``.npy`` file containing joint positions with shape
-        ``(F, N, 3)`` where ``F`` is the number of frames and ``N`` the
-        number of joints.
-    output_path: :class:`~pathlib.Path`
-        Where to save the resulting SMPL pose file.
-    overwrite: bool, optional
-        Whether to overwrite ``output_path`` if it already exists.
 
-    Returns
-    -------
-    :class:`~pathlib.Path`
-        The path to the written pose file.
-    """
-    data = np.load(str(input_path))
-    if data.ndim == 4:
-        data = data[0]
+def convert(input_path: Path, output_path: Path, datamodule, overwrite: bool = True) -> Path:
+    """Convert feature ``input_path`` to SMPL pose ``output_path``."""
+    feats_np = np.load(str(input_path))
+    if feats_np.ndim == 3 and feats_np.shape[0] == 1:
+        feats_np = feats_np[0]
+    feats = torch.tensor(feats_np, dtype=torch.float32)
 
-    # Center the motion on the first joint of the first frame
-    data = data - data[0, 0]
+    joints = datamodule.feats2joints(feats).cpu().numpy()
+    if joints.ndim == 4:
+        joints = joints[0]
+    joints = joints - joints[0, 0]
 
     pose_generator = HybrIKJointsToRotmat()
-    pose = pose_generator(data)
+    pose = pose_generator(joints)
 
-    # Append identity rotations for the last two SMPL joints
     identity = np.stack([np.eye(3)] * pose.shape[0], 0)
     pose = np.concatenate([pose, np.stack([identity] * 2, 1)], 1)
 
     if output_path.exists() and not overwrite:
-        raise FileExistsError(f"{output_path} exists. Use --force to overwrite")
-    np.save(output_path, pose)
+        raise FileExistsError(f"{output_path} exists. Use --overwrite to replace")
+
+    np.save(str(output_path), pose)
     return output_path
 
 
-def gather_inputs(paths: list[str]) -> list[Path]:
-    """Expand directories and find npy files if ``paths`` is empty."""
-    if not paths:
-        paths = [str(p) for p in Path.cwd().glob("*.npy")]
-
-    inputs: list[Path] = []
-    for p in paths:
-        path = Path(p)
-        if path.is_dir():
-            inputs.extend(sorted(path.glob("*.npy")))
-        else:
-            inputs.append(path)
-    return inputs
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Convert joint npy files to SMPL pose files",
-        epilog=(
-            "If no input files are given, all *.npy files in the current "
-            "directory are processed. Directories can also be passed and will "
-            "be searched for *.npy files."
-        ),
-    )
-    parser.add_argument(
-        "inputs",
-        nargs="*",
-        help="Input joint npy files or directories",
-    )
-    parser.add_argument(
-        "--output-dir",
-        help="Directory to store resulting pose files. Defaults to alongside inputs",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Overwrite existing pose files",
-    )
-    parser.add_argument(
-        "--output",
-        help="Destination file when a single input is provided",
-    )
-    args = parser.parse_args()
+    os.environ.setdefault("DISPLAY", ":0.0")
+    os.environ.setdefault("PYOPENGL_PLATFORM", "egl")
 
-    inputs = gather_inputs(args.inputs)
-    output_dir = Path(args.output_dir) if args.output_dir else None
+    input_folder = "results/npy/"
+    with open("input_scripts/names.txt", "r", encoding="utf-8") as f:
+        input_files = [line.strip() for line in f if line.strip()]
 
-    for i, inp in enumerate(inputs):
-        if output_dir:
-            out_path = output_dir / f"{inp.stem}_pose.npy"
-        elif i == 0 and args.output:
-            out_path = Path(args.output)
-        else:
-            out_path = inp.with_name(f"{inp.stem}_pose.npy")
-        out = convert(inp, out_path, overwrite=args.force)
+    output_folder = "results/smpl"
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    for input_file in input_files:
+        if not input_file.endswith(".npy"):
+            input_file += ".npy"
+        if not os.path.exists(input_folder + input_file):
+            raise FileNotFoundError(f"{input_folder + input_file} not found.")
+        input_path = Path(input_folder + input_file)
+        output_path = Path(output_folder + f"/{input_path.stem}_pose.npy")
+
+        print(input_path)
+
+        datamodule = _load_datamodule()
+
+        out = convert(input_path, output_path, datamodule)
         print(f"SMPL pose saved to {out}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
