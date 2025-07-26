@@ -17,9 +17,12 @@ import numpy as np
 
 import sys
 import torch
+
+from mGPT.data.humanml.scripts.motion_process import recover_root_rot_pos
 from mGPT.render.pyrender.hybrik_loc2rot import HybrIKJointsToRotmat
 from mGPT.config import parse_args
 from mGPT.data.build_data import build_data
+from mGPT.utils.rotation_conversions import quaternion_to_matrix
 
 
 def _load_datamodule():
@@ -38,13 +41,18 @@ def convert(input_path: Path, output_path: Path, datamodule, overwrite: bool = T
         feats_np = feats_np[0]
     feats = torch.tensor(feats_np, dtype=torch.float32)
 
-    joints = datamodule.feats2joints(feats).cpu().numpy()
+    joints = datamodule.feats2joints(feats).cpu()
     if joints.ndim == 4:
         joints = joints[0]
-    joints = joints - joints[0, 0]
 
+    feats_denorm = datamodule.denormalize(feats)
+    r_quat, r_pos = recover_root_rot_pos(feats_denorm)
+    root_trans = r_pos.cpu().numpy()
+    root_rot = quaternion_to_matrix(r_quat).cpu().numpy()
+
+    joints = joints - r_pos.unsqueeze(1)
     pose_generator = HybrIKJointsToRotmat()
-    pose = pose_generator(joints)
+    pose = pose_generator(joints.numpy())
 
     identity = np.stack([np.eye(3)] * pose.shape[0], 0)
     pose = np.concatenate([pose, np.stack([identity] * 2, 1)], 1)
@@ -52,7 +60,7 @@ def convert(input_path: Path, output_path: Path, datamodule, overwrite: bool = T
     if output_path.exists() and not overwrite:
         raise FileExistsError(f"{output_path} exists. Use --overwrite to replace")
 
-    np.save(str(output_path), pose)
+    np.savez(str(output_path), pose = pose, trans = root_trans, root_rot = root_rot)
     return output_path
 
 
@@ -74,7 +82,7 @@ def main() -> None:
         if not os.path.exists(input_folder + input_file):
             raise FileNotFoundError(f"{input_folder + input_file} not found.")
         input_path = Path(input_folder + input_file)
-        output_path = Path(output_folder + f"/{input_path.stem}_pose.npy")
+        output_path = Path(output_folder + f"/{input_path.stem}_pose")
 
         print(input_path)
 
