@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: imusim
+Version: 0.2
+Home-page: http://www.imusim.org/
+Author: Alex Young and Martin Ling
+License: GPLv3
+License-File: license.txt
+Requires-Dist: simpy<3,>=2.3
+Requires-Dist: pyparsing
+Requires-Dist: numpy
+Dynamic: author
+Dynamic: home-page
+Dynamic: license
+Dynamic: license-file
+Dynamic: requires-dist
