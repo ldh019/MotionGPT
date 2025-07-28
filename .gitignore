@@ -1,7 +1,6 @@
 .idea
 __pycache__
 deps
-results
+results/mgpt
 cache
-converted_bvh
 checkpoints
