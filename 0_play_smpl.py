@@ -9,12 +9,12 @@ upright on the floor and the camera is placed fairly close to the body.
 
 from __future__ import annotations
 
-import argparse
 from pathlib import Path
 
 import imageio
 import numpy as np
 from scipy.spatial.transform import Rotation as RRR
+import os
 
 from mGPT.render.pyrender.smpl_render import SMPLRender
 
@@ -24,7 +24,7 @@ def npz_to_gif(
     gif_path: Path,
     smpl_model_path: str = "deps/smpl/smpl_models/smpl",
     fps: float = 20.0,
-    camera_scale: float = 0.5,
+    camera_scale: float = 0.7
 ) -> Path:
     """Render ``npz_path`` (containing ``pose``, ``trans`` and ``root_rot``) to
     ``gif_path``."""
@@ -61,15 +61,26 @@ def npz_to_gif(
 
 
 def main() -> None:
-    np_file = "results/smpl/walk_backward.npz"
-    output_file = "results/gif/walk_backward.gif"
+    with open("input_scripts/names.txt", "r", encoding="utf-8") as f:
+        input_files = [line.strip() for line in f if line.strip()]
+
+    input_folder = "results/smpl/"
+    output_folder = "results/gif"
     model_folder = "deps/smpl_models/smpl"
 
-    input_path = Path(np_file)
-    output_path = Path(output_file)
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
-    npz_to_gif(input_path, output_path, smpl_model_path=model_folder, fps=20)
-    print(f"GIF saved to {output_path}")
+    for input_file in input_files:
+        if not input_file.endswith(".npz"):
+            input_file += ".npz"
+        if not os.path.exists(input_folder + input_file):
+            raise FileNotFoundError(f"{input_folder + input_file} not found.")
+        input_path = Path(input_folder + input_file)
+        output_path = Path(output_folder + f"/{input_path.stem}.gif")
+
+        npz_to_gif(input_path, output_path, smpl_model_path=model_folder, fps=20)
+        print(f"GIF saved to {output_path}")
 
 
 if __name__ == "__main__":
