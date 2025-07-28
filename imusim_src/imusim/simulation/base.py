@@ -40,10 +40,9 @@ class Simulation(object):
 
         @param seed: Seed value for L{np.random.RandomState}.
         @param environment: L{Environment} to simulate in.
-        @param engine: L{SimPy.Simulation} subclass to drive simulation.
         """
         self.environment = Environment() if environment is None else environment
-        self.engine = Environment()
+        self.engine = simpy.Environment()
         self.rng = np.random.RandomState(seed)
 
     @property
@@ -72,7 +71,7 @@ class Simulation(object):
             for i in range(0,20):
                 start = time.time()
                 yield self.env.timeout(self.duration / 20.0)
-                now = self.sim.now - self.startTime
+                now = self.env.now - self.startTime
                 end = time.time()
 
                 remaining = (20-i) * (end-start)

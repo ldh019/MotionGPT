@@ -1,1 +1,22 @@
-sit
+walking forward
+walking backward
+forward roll
+tumbling
+squat down
+tennis serve
+lying down
+boxing jab
+bench press
+stair climbing
+crawling
+walking forward detail
+walking backward detail
+forward roll detail
+tumbling detail
+squat down detail
+tennis serve detail
+lying down detail
+boxing jab detail
+bench press detail
+stair climbing detail
+crawling detail

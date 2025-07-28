@@ -21,7 +21,6 @@ from mGPT.utils.rotation_conversions import matrix_to_axis_angle
 
 from bvh_utils import bvh, quat
 
-
 NAMES: Sequence[str] = [
     "Pelvis",
     "Left_hip",

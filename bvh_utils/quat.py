@@ -277,7 +277,10 @@ def from_angle_axis(angle, axis):
 # Calculate quaternions from axis-angle.
 def from_axis_angle(rots):
     angle = np.linalg.norm(rots, axis=-1)
-    axis = rots / angle[..., None]
+    safe_axis = np.zeros_like(rots)
+    safe_axis[..., 0] = 1.0
+    mask = (angle != 0)
+    axis = np.where(mask[..., None], rots / angle[..., None], safe_axis)
     return from_angle_axis(angle, axis)
 
 

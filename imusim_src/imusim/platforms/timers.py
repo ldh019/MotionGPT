@@ -56,7 +56,7 @@ class Timer(Component):
                     return
 
         def timeElapsed(self):
-            return self.sim.now - self._lastTime
+            return self.env.now - self._lastTime
 
     def _simulationChange(self):
         self._process = None
@@ -95,6 +95,8 @@ class Timer(Component):
                 if not self._repeat:
                     self._process = None
                     return
+            else:
+                return
 
     @abstractmethod
     def _truePeriod(self, targetPeriod):

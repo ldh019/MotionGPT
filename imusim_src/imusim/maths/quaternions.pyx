@@ -564,6 +564,25 @@ class QuaternionArray(object):
             L{QuaternionArray},  whether to copy the data. If not it will be
             referenced in place.
         """
+        # --- 빈 배열 처리 시작 ---
+        if hasattr(data, 'shape') and data.shape[0] == 0:
+            # array가 Nx4 형태여야 하므로 (0,4) 크기의 빈 array 생성
+            self.array = np.empty((0, 4), dtype=float)
+            # w,x,y,z 필드도 길이 0 배열로 초기화
+            self.w = np.empty(0, dtype=float)
+            self.x = np.empty(0, dtype=float)
+            self.y = np.empty(0, dtype=float)
+            self.z = np.empty(0, dtype=float)
+            return
+        elif hasattr(data, '__len__') and len(data) == 0:
+            self.array = np.empty((0, 4), dtype=float)
+            self.w = np.empty(0, dtype=float)
+            self.x = np.empty(0, dtype=float)
+            self.y = np.empty(0, dtype=float)
+            self.z = np.empty(0, dtype=float)
+            return
+        # --- 빈 배열 처리 끝 ---
+
         if isinstance(data, (tuple,list)):
             if isinstance(data[0],Quaternion):
                 self.array = np.array([q.components for q in data],ndmin=2)

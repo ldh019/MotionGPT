@@ -15,6 +15,8 @@ import imageio
 import numpy as np
 from scipy.spatial.transform import Rotation as RRR
 import os
+import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter1d
 
 from mGPT.render.pyrender.smpl_render import SMPLRender
 
@@ -36,10 +38,13 @@ def npz_to_gif(
 
     # Combine root rotation if provided
     if root_rot.shape == pose[:, 0].shape:
-        pose[:, 0] = root_rot
+        pose[:, 0] = np.einsum("tij,tjk->tik", root_rot, pose[:, 0])
 
     # Subtract initial translation to keep the motion near the origin
     trans = trans - trans[0]
+
+    # trans = gaussian_filter1d(trans, sigma=3, axis=0)
+    # trans[:, 2] = np.mean(trans[:, 2])
 
     # Rotate pose and translation to match pyrender coordinates
     r = RRR.from_rotvec(np.array([np.pi, 0.0, 0.0]))
