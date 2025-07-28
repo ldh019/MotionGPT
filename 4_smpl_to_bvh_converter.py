@@ -84,14 +84,7 @@ def convert(
     model = smplx.create(str(model_path), model_type=model_type, gender=gender, batch_size=1)
     parents = model.parents.detach().cpu().numpy()
 
-    rest = model()
-    rest_pose = rest.joints.detach().cpu().numpy().squeeze()[:24, :]
-
-    root_offset = rest_pose[0]
-    offsets = rest_pose - rest_pose[parents]
-    offsets[0] = root_offset
-    offsets *= 100
-
+    # rest = model()
     with open(input_path, "rb") as f:
         if input_path.suffix == ".npz":
             data = np.load(f)
@@ -113,6 +106,7 @@ def convert(
 
         trans = data["trans"] if "trans" in data else data.get("smpl_trans")
         scaling = data.get("smpl_scaling")
+        betas = data.get("betas") or data.get("smpl_betas")
 
         # Remove any leading singleton dimension.
         rots = np.asarray(rots)
@@ -120,6 +114,20 @@ def convert(
             rots = rots[0]
         if trans is not None:
             trans = np.asarray(trans)
+
+    if betas is not None:
+        betas_t = torch.tensor(betas, dtype=torch.float32).unsqueeze(0)
+        rest = model(betas=betas_t)
+    else:
+        rest = model()
+    #
+
+    rest_pose = rest.joints.detach().cpu().numpy().squeeze()[:24, :]
+
+    root_offset = rest_pose[0]
+    offsets = rest_pose - rest_pose[parents]
+    offsets[0] = root_offset
+    offsets *= 100
 
     # ``rots`` could be provided as rotation matrices. Convert to axis-angle if needed.
     if rots.ndim == 4 and rots.shape[-1] == 3 and rots.shape[-2] == 3:

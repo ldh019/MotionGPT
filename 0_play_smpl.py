@@ -24,7 +24,7 @@ def npz_to_gif(
     gif_path: Path,
     smpl_model_path: str = "deps/smpl/smpl_models/smpl",
     fps: float = 20.0,
-    camera_scale: float = 0.7,
+    camera_scale: float = 0.5,
 ) -> Path:
     """Render ``npz_path`` (containing ``pose``, ``trans`` and ``root_rot``) to
     ``gif_path``."""
@@ -61,8 +61,8 @@ def npz_to_gif(
 
 
 def main() -> None:
-    np_file = "results/smpl/walk_forward.npz"
-    output_file = "results/gif/walk_forward.gif"
+    np_file = "results/smpl/walk_backward.npz"
+    output_file = "results/gif/walk_backward.gif"
     model_folder = "deps/smpl_models/smpl"
 
     input_path = Path(np_file)
