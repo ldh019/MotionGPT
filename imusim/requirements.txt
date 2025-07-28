@@ -1,4 +1,0 @@
-scipy
-SimPy
-matplotlib
-mayavi
