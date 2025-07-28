@@ -49,7 +49,7 @@ def main():
     with open("input_scripts/names.txt", "r", encoding="utf-8") as f:
         names = [line.strip() for line in f if line.strip()]
 
-    output_path = Path("results/npy")
+    output_path = Path("results/feature")
 
     model, datamodule, device = load_model()
 
